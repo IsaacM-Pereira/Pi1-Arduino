@@ -1,7 +1,11 @@
 // Define os pinos para os sensores
-const int sensorPin1 = A3; // sensor da esquerda
-const int sensorPin2 = A4; // sensor do meio
-const int sensorPin3 = A5; // sensor da direita
+const int sensorLeft = 11; // sensor da esquerda
+const int sensorCenter = 12; // sensor do meio
+const int sensorRight = 13; // sensor da direita
+
+// Define o numero de leituras para a média do sensor
+const int numReadings = 10;
+
 
 // Define os pinos para os motores
 const int motorRightSpeed = 9; // pino de velocidade do motor da direita
@@ -11,7 +15,7 @@ const int motorLeftDirection = 6; // pino de direção do motor da esquerda
 
 // Define a velocidade padrão e a velocidade reduzida
 const int speed = 20;
-const int reducedSpeed = 16; // metade da velocidade padrão
+const int reducedSpeed = 0; // metade da velocidade padrão
 
 void setup()
 {
@@ -20,45 +24,55 @@ void setup()
   pinMode(motorRightDirection, OUTPUT);
   pinMode(motorLeftSpeed, OUTPUT);
   pinMode(motorLeftDirection, OUTPUT);
-  pinMode(sensorPin1, INPUT);
-  pinMode(sensorPin2, INPUT);
-  pinMode(sensorPin3, INPUT);
+  pinMode(sensorLeft, INPUT);
+  pinMode(sensorCenter, INPUT);
+  pinMode(sensorRight, INPUT);
+
+  digitalWrite(motorRightDirection, LOW);
+  digitalWrite(motorLeftDirection, LOW);
 }
 
 void loop()
 {
-  // Lê o estado dos sensores
-  int sensorState1 = digitalRead(sensorPin1);
-  int sensorState2 = digitalRead(sensorPin2);
-  int sensorState3 = digitalRead(sensorPin3);
+  controlador();
+}
+
+int readSensorAverage(int sensorPin) {
+  int total = 0;
+  for (int i = 0; i < numReadings; i++) {
+    total += digitalRead(sensorPin);
+    delay(10); // delay between readings
+  }
+  return total / numReadings;
+}
+
+
+void controlador()
+{
+    // Lê o estado dos sensores
+  int sensorStateLeft = readSensorAverage(sensorLeft);
+  int sensorStateCenter = readSensorAverage(sensorCenter);
+  int sensorStateRight = readSensorAverage(sensorRight);
 
   // Verifica o estado dos sensores e ajusta a velocidade dos motores de acordo
-  if (sensorState1 == HIGH && sensorState3 == LOW) {
-    // Se o sensor da esquerda estiver ativo, diminui a velocidade do motor da esquerda e aumenta a do motor da direita
+  if (sensorStateLeft == HIGH && sensorStateRight == LOW) {
+    // Se o sensor da esquerda estiver ativo, diminui a velocidade do motor da esquerda
     analogWrite(motorLeftSpeed, reducedSpeed);
-    digitalWrite(motorLeftDirection, LOW); // Inverte a direção
     analogWrite(motorRightSpeed, speed);
-    digitalWrite(motorRightDirection, LOW); // Inverte a direção
-  } else if (sensorState3 == HIGH && sensorState1 == LOW) {
-    // Se o sensor da direita estiver ativo, diminui a velocidade do motor da direita e aumenta a do motor da esquerda
+  } else if (sensorStateLeft == LOW && sensorStateRight == HIGH) {
+    // Se o sensor da direita estiver ativo, diminui a velocidade do motor da direita
     analogWrite(motorLeftSpeed, speed);
-    digitalWrite(motorLeftDirection, LOW); // Inverte a direção
     analogWrite(motorRightSpeed, reducedSpeed);
-    digitalWrite(motorRightDirection, LOW); // Inverte a direção
-  } else if (sensorState2 == HIGH) {
+  } else if (sensorStateLeft == LOW && sensorStateCenter == HIGH && sensorStateRight == LOW) {
     // Se o sensor do meio estiver ativo, define a mesma velocidade para ambos os motores
     analogWrite(motorLeftSpeed, speed);
-    digitalWrite(motorLeftDirection, LOW); // Inverte a direção
     analogWrite(motorRightSpeed, speed);
-    digitalWrite(motorRightDirection, LOW); // Inverte a direção
-  } else if (sensorState1 == LOW && sensorState2 == LOW && sensorState3 == LOW) {
+  } else if (sensorStateLeft == LOW && sensorStateCenter == LOW && sensorStateRight == LOW) {
     // Se todos os sensores estiverem desativados por mais de 600 ms, desliga os motores
     delay(600);
-    if (digitalRead(sensorPin1) == LOW && digitalRead(sensorPin2) == LOW && digitalRead(sensorPin3) == LOW) {
+    if (digitalRead(sensorLeft) == LOW && digitalRead(sensorCenter) == LOW && digitalRead(sensorRight) == LOW) {
       analogWrite(motorLeftSpeed, 0);
-      digitalWrite(motorLeftDirection, LOW); // Inverte a direção
       analogWrite(motorRightSpeed, 0);
-      digitalWrite(motorRightDirection, LOW); // Inverte a direção
-    }
-  }
+    }
+  }
 }
