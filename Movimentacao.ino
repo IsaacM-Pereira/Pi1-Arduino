@@ -4,25 +4,31 @@ const int sensorCenter = 12; // sensor do meio
 const int sensorRight = 13;  // sensor da direita
 
 // Motores
-const int motorLeftSpeed = 5;       // pino de velocidade do motor da esquerda
-const int motorLeftDirection = 6;   // pino de direção do motor da esquerda
-const int motorRightSpeed = 10;      // pino de velocidade do motor da direita
+const int motorLeftSpeed = 5;      // pino de velocidade do motor da esquerda
+const int motorLeftDirection = 6;  // pino de direção do motor da esquerda
+const int motorRightSpeed = 10;    // pino de velocidade do motor da direita
 const int motorRightDirection = 9; // pino de direção do motor da direita
 
 // Constates de controle
-const int numReadings = 10;
-const int speed = 70;
+const int numReadings = 3;
+const int speedl = 50;
+const int speedr = 48;
 const int reducedSpeed = 0;
+
+volatile int sensorStateLeft;
+volatile int sensorStateCenter;
+volatile int sensorStateRight;
+
+volatile int stopSignal = 0;
 
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   pinMode(motorLeftSpeed, OUTPUT);
   digitalWrite(motorLeftDirection, LOW);
   pinMode(motorRightSpeed, OUTPUT);
   digitalWrite(motorRightDirection, LOW);
-
 
   pinMode(sensorLeft, INPUT);
   pinMode(sensorCenter, INPUT);
@@ -34,45 +40,59 @@ void loop()
   controlador();
 }
 
-int readSensorAverage(int sensorPin)
+void readSensorAverage()
 {
-  int total = 0;
+  int totalL = 0;
+  int totalC = 0;
+  int totalR = 0;
+
   for (int i = 0; i < numReadings; i++)
   {
-    total += digitalRead(sensorPin);
-    delay(10); // delay between readings
+    totalL += digitalRead(sensorLeft);
+    totalC += digitalRead(sensorCenter);
+    totalR += digitalRead(sensorRight);
   }
-  return total / numReadings;
+  sensorStateLeft = totalL / numReadings;
+  sensorStateCenter = totalC / numReadings;
+  sensorStateRight = totalR / numReadings;
+}
+
+void readSensorT()
+{
+  sensorStateLeft = digitalRead(sensorLeft);
+  sensorStateCenter = digitalRead(sensorCenter);
+  sensorStateRight = digitalRead(sensorRight);
 }
 
 void controlador()
 {
-  int sensorStateLeft = readSensorAverage(sensorLeft);
-  int sensorStateCenter = readSensorAverage(sensorCenter);
-  int sensorStateRight = readSensorAverage(sensorRight);
-
-  if (sensorStateLeft == 0 && sensorStateRight == 1)
+  readSensorT();
+  if (sensorStateLeft == 1 && sensorStateCenter == 0 && sensorStateRight == 1)
+  {
+    analogWrite(motorLeftSpeed, speedl);
+    analogWrite(motorRightSpeed, speedr);
+  }
+  else if (sensorStateLeft == 0 && sensorStateRight == 1)
   {
     analogWrite(motorLeftSpeed, reducedSpeed);
-    analogWrite(motorRightSpeed, speed);
+    analogWrite(motorRightSpeed, speedr);
+    do
+    {
+      readSensorT();
+    } while (sensorStateLeft == 1 && sensorStateCenter == 0 && sensorStateRight == 1);
   }
   else if (sensorStateLeft == 1 && sensorStateRight == 0)
   {
-    analogWrite(motorLeftSpeed, speed);
+    analogWrite(motorLeftSpeed, speedl);
     analogWrite(motorRightSpeed, reducedSpeed);
-  }
-  else if (sensorStateLeft == 1 && sensorStateCenter == 0 && sensorStateRight == 1)
-  {
-    analogWrite(motorLeftSpeed, speed);
-    analogWrite(motorRightSpeed, speed);
-  }
-  else if (sensorStateLeft == 1 && sensorStateCenter == 1 && sensorStateRight == 1)
-  {
-    delay(500);
-    if (digitalRead(sensorLeft) == 1 && digitalRead(sensorCenter) == 1 && digitalRead(sensorRight) == 1)
+    do
     {
-      analogWrite(motorLeftSpeed, reducedSpeed);
-      analogWrite(motorRightSpeed, reducedSpeed);
-    }
+      readSensorT();
+    } while (sensorStateLeft == 1 && sensorStateCenter == 0 && sensorStateRight == 1);
+  }
+  else if (sensorStateLeft == 0 && sensorStateCenter == 0 && sensorStateRight == 0)
+  {
+    analogWrite(motorLeftSpeed, 0);
+    analogWrite(motorRightSpeed, 0);
   }
 }

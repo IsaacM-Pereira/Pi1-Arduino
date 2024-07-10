@@ -2,7 +2,7 @@
 #include <SPI.h>
 
 
-#define CS_PIN 4 // Defina para o pino CS do seu módulo SD
+#define CS_PIN 10 // Defina para o pino CS do seu módulo SD
 #define ACS712_PIN A0 // Pino analógico conectado ao ACS712
 #define D_Sensor_Left 3
 #define D_Sensor_Right 2
@@ -18,7 +18,6 @@ const unsigned long timeoutInterval = 500; // Ajuste conforme necessário
 
 void setup() {
   Serial.begin(115200);
-
   pinMode(CS_PIN, OUTPUT);
 
   if (!SD.begin(CS_PIN)) {
@@ -36,15 +35,15 @@ void loop() {
 }
 
 
-float readCurrent() {
-  int sensorValue = analogRead(ACS712_PIN);
-  float voltage = (sensorValue / 1023.0) * 5.0; // Converte o valor lido para tensão
-  float current = (voltage - 2.5) / 0.185; // Ajuste 0.185 para a sensibilidade do seu sensor
-  return current;
-}
+// float readCurrent() {
+//   int sensorValue = analogRead(ACS712_PIN);
+//   float voltage = (sensorValue / 1023.0) * 5.0; // Converte o valor lido para tensão
+//   float current = (voltage - 2.5) / 0.185; // Ajuste 0.185 para a sensibilidade do seu sensor
+//   return current;
+// }
 
 void logDataToSD() {
-  float current = readCurrent();
+  float current = analogRead(ACS712_PIN);
   String dataString = String(millis()) + "," + String(velocity_Left / 20.0 * 60.0) + "," + String(velocity_Right / 20.0 * 60.0) + "," + String(current);
 
   bool exists = SD.exists("datalog.csv");
